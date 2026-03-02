@@ -1,0 +1,12 @@
+# credentials / local config
+src/config.py
+
+# Python cache
+_pycache_/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+
