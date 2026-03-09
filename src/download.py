@@ -27,6 +27,11 @@ def data_writing(file_path, data, mode="w"):
     print(f"Se guardaron {len(data)} registros en {file_path}")
 
 
+# fechas
+today = datetime.today().strftime("%Y-%m-%d")
+start_date = f"{datetime.today().year}-01-01"
+
+
 for i, (city, coords) in enumerate(CITIES.items()):
 
     lat = coords["lat"]
@@ -36,14 +41,28 @@ for i, (city, coords) in enumerate(CITIES.items()):
         f"{BASE_URL}"
         f"?latitude={lat}"
         f"&longitude={lon}"
-        f"&current_weather=true"
+        f"&start_date={start_date}"
+        f"&end_date={today}"
+        f"&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+        f"&timezone=auto"
     )
 
     weather_data = api_request(url_weather)
 
-    weather_data["city"] = city
-    weather_data["ingestion_time"] = datetime.utcnow().isoformat()
+    results = []
+
+    for j, date in enumerate(weather_data["daily"]["time"]):
+
+        record = {
+            "city": city,
+            "date": date,
+            "temp_max": weather_data["daily"]["temperature_2m_max"][j],
+            "temp_min": weather_data["daily"]["temperature_2m_min"][j],
+            "precipitation": weather_data["daily"]["precipitation_sum"][j]
+        }
+
+        results.append(record)
 
     mode = "w" if i == 0 else "a"
 
-    data_writing(WEATHER_PATH, [weather_data], mode)
+    data_writing(WEATHER_PATH, results, mode)
