@@ -16,7 +16,7 @@ Análisis de datos climatológicos para generar avisos y rutas aereas adecuadas 
 - Librerías: pip install -r requirements .txt
 
 ### Integrantes
-Neide Ochando Pérez;
+Neide Ochocho Pénet;
 Guillermo Díaz Barrero;
 Mateo Molina Garibo;
-Rodrigo Guzmán Nieto Pérez;
+Rodrigo Gutmán Nieto Péret;

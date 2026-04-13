@@ -10,6 +10,9 @@ from flight_scoring import score_flight, score_to_rating
 
 st.set_page_config(page_title="Legion Flight", layout="wide")
 
+ruta_imagen = os.path.join(os.path.dirname(__file__), "avion.jpeg")
+st.image(ruta_imagen, width=500)
+
 # Cargar datos meteorológicos
 @st.cache_data
 def load_data():
@@ -125,7 +128,37 @@ AEROPUERTOS = [
 st.markdown('<div id="buscar-vuelo"></div>', unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
+# Lista de aeropuertos de España
+aeropuertos = [
+    "Madrid - Barajas (MAD)",
+    "Barcelona - El Prat (BCN)",
+    "Málaga - Costa del Sol (AGP)",
+    "Palma de Mallorca (PMI)",
+    "Alicante (ALC)",
+    "Valencia (VLC)",
+    "Sevilla (SVQ)",
+    "Bilbao (BIO)",
+    "Gran Canaria (LPA)",
+    "Tenerife Norte (TFN)",
+    "Tenerife Sur (TFS)",
+    "Ibiza (IBZ)",
+    "Menorca (MAH)",
+    "Santiago (SCQ)",
+    "Asturias (OVD)",
+    "Zaragoza (ZAZ)"
+]
+
 with col1:
+    origen = st.selectbox(
+        "Ciudad / Aeropuerto salida",
+        aeropuertos
+    )
+
+with col2:
+    destino = st.selectbox(
+        "Ciudad / Aeropuerto llegada",
+        aeropuertos
+    )
     origen = st.selectbox("Aeropuerto salida", AEROPUERTOS, index=0)
 
 with col2:
