@@ -40,16 +40,18 @@ def composite_score(wind, precip, temp):
 
 
 def score_to_rating(score):
-    if score >= 80:
-        return "Excelente", "#28a745"
+    if score >= 90:
+        return "Excelente", "#28a745"      # verde
+    elif score >= 80:
+        return "Muy bueno", "#b8d434"      # amarillo verdoso
+    elif score >= 70:
+        return "Bueno", "#ffc107"          # amarillo
     elif score >= 60:
-        return "Bueno", "#7bc67e"
-    elif score >= 40:
-        return "Moderado", "#ffc107"
-    elif score >= 20:
-        return "Malo", "#fd7e14"
+        return "Moderado", "#ffaa00"       # amarillo oscuro
+    elif score >= 50:
+        return "Regular", "#fd7e14"        # naranja
     else:
-        return "Muy malo", "#dc3545"
+        return "Malo", "#dc3545"           # rojo
 
 
 
