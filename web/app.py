@@ -10,6 +10,9 @@ from flight_scoring import score_flight, score_to_rating
 
 st.set_page_config(page_title="Legion Flight", layout="wide")
 
+ruta_imagen = os.path.join(os.path.dirname(__file__), "avion.jpeg")
+st.image(ruta_imagen, width=500)
+
 # Cargar datos meteorológicos
 @st.cache_data
 def load_data():
