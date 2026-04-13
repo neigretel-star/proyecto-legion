@@ -5,7 +5,7 @@ import os
 import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from weather_helpers import load_weather_csv, get_weather_at, get_available_dates, degrees_to_compass
+from ayuda_weather import load_weather_csv, get_weather_at, get_available_dates, degrees_to_compass
 from flight_scoring import score_flight, score_to_rating
 
 st.set_page_config(page_title="Legion Flight", layout="wide")
