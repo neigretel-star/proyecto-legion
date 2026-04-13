@@ -1,7 +1,8 @@
 [READ ME.md](https://github.com/user-attachments/files/25681143/READ.ME.md)
 ## Proyecto climatología-aviación
 
-Análisis de datos climatológicos para generar avisos y rutas aereas adecuadas al clima para pilotos privados. Datos obtenidos de la aplicación "buscar...".
+Descubre cómo será tu vuelo antes de despegar
+Convierte la incertidumbre en información: conoce las condiciones de tu vuelo y destino antes de embarcar.
 
 ### Estructura
 

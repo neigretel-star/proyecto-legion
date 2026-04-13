@@ -3,10 +3,17 @@ import pandas as pd
 import sys
 import os
 import datetime
+import base64
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from ayuda_weather import load_weather_csv, get_weather_at, get_available_dates, degrees_to_compass
 from flight_scoring import score_flight, score_to_rating
+
+
+def get_hero_image_base64():
+    img_path = os.path.join(os.path.dirname(__file__), "assets", "hero.jpg")
+    with open(img_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
 st.set_page_config(page_title="Legion Flight", layout="wide")
 
@@ -67,18 +74,145 @@ st.markdown("""
     .navbar-spacer { width: 150px; }
     .block-container { padding-top: 4.5rem !important; }
 
-    .weather-card {
-        background: #1e1e2e;
-        border-radius: 12px;
-        padding: 1.2rem;
-        border: 1px solid #2e2e2e;
-    }
     .rating-badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
         border-radius: 20px;
         font-weight: 600;
         font-size: 0.9rem;
+        color: white;
+    }
+
+    /* Hero section */
+    .hero {
+        position: relative;
+        width: calc(100% + 6rem);
+        margin-left: -3rem;
+        margin-top: -1rem;
+        height: 520px;
+        overflow: hidden;
+        border-radius: 0 0 16px 16px;
+    }
+    .hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .hero-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to bottom, rgba(14,17,23,0.3) 0%, rgba(14,17,23,0.85) 100%);
+    }
+    .hero-content {
+        position: absolute;
+        bottom: 2.5rem;
+        left: 3rem;
+        z-index: 2;
+    }
+    .hero-content h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+    .hero-content p {
+        font-size: 1.05rem;
+        color: #c0c0c0;
+        margin: 0 0 1.5rem 0;
+        max-width: 550px;
+        font-style: italic;
+    }
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+    .hero-buttons a {
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .btn-primary {
+        background-color: #2563eb;
+        color: white;
+    }
+    .btn-primary:hover { background-color: #1d4ed8; }
+    .btn-secondary {
+        background-color: rgba(255,255,255,0.12);
+        color: #e0e0e0;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-secondary:hover { background-color: rgba(255,255,255,0.2); }
+
+    /* Tarjetas meteorológicas sobre el hero */
+    .hero-weather {
+        position: absolute;
+        top: 1.5rem;
+        left: 3rem;
+        display: flex;
+        gap: 1rem;
+        z-index: 2;
+    }
+    .hero-weather-right {
+        position: absolute;
+        top: 1.5rem;
+        right: 3rem;
+        z-index: 2;
+    }
+    .hero-weather-bottom-right {
+        position: absolute;
+        bottom: 2.5rem;
+        right: 3rem;
+        z-index: 2;
+    }
+    .hw-card {
+        background: rgba(14,17,23,0.65);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        color: white;
+        min-width: 130px;
+    }
+    .hw-card .hw-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #a0a0a0;
+        margin-bottom: 0.3rem;
+    }
+    .hw-card .hw-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    .hw-card .hw-sub {
+        font-size: 0.8rem;
+        color: #b0b0b0;
+        margin-top: 0.2rem;
+    }
+    .hero-turbulence {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        text-align: center;
+    }
+    .hero-turbulence .hw-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #a0a0a0;
+    }
+    .hero-turbulence .hw-value {
+        font-size: 1.1rem;
+        font-weight: 600;
         color: white;
     }
 </style>
@@ -96,11 +230,61 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# HEADER
-st.markdown("### Descubre cómo será tu vuelo antes de despegar")
-st.markdown("*Convierte la incertidumbre en información: conoce las condiciones de tu vuelo y destino antes de embarcar.*")
+# HERO SECTION
+hero_b64 = get_hero_image_base64()
 
-st.markdown("---")
+st.markdown(f"""
+<div class="hero">
+    <img src="data:image/jpeg;base64,{hero_b64}" alt="Avión en vuelo">
+    <div class="hero-overlay"></div>
+
+    <!-- Tarjetas meteorológicas decorativas -->
+    <div class="hero-weather">
+        <div class="hw-card">
+            <div class="hw-label">Viento</div>
+            <div class="hw-value">18 kt</div>
+            <div class="hw-sub">Rachas 26 kt</div>
+        </div>
+        <div class="hw-card">
+            <div class="hw-label">Temperatura</div>
+            <div class="hw-value">-12 °C</div>
+            <div class="hw-sub">Punto de rocío -18 °C</div>
+        </div>
+    </div>
+
+    <div class="hero-weather-right">
+        <div class="hw-card">
+            <div class="hw-label">Cielo</div>
+            <div class="hw-value">Nubes dispersas</div>
+            <div class="hw-sub">8,500 ft</div>
+        </div>
+    </div>
+
+    <div class="hero-turbulence">
+        <div class="hw-label">Turbulencia</div>
+        <div class="hw-value">Moderada</div>
+    </div>
+
+    <div class="hero-weather-bottom-right">
+        <div class="hw-card">
+            <div class="hw-label">Visibilidad</div>
+            <div class="hw-value">10 km</div>
+        </div>
+    </div>
+
+    <!-- Texto principal -->
+    <div class="hero-content">
+        <h1>Descubre cómo será tu vuelo<br>antes de despegar</h1>
+        <p>Convierte la incertidumbre en información: conoce las condiciones de tu vuelo y destino antes de embarcar.</p>
+        <div class="hero-buttons">
+            <a href="#buscar-vuelo" class="btn-primary">🔍 Buscar vuelo</a>
+            <a href="#como-funciona" class="btn-secondary">Cómo funciona</a>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("")
 
 # Lista de aeropuertos disponibles
 AEROPUERTOS = [
