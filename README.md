@@ -1,55 +1,85 @@
-# Proyecto climatologia-aviacion
+# Legion Flight
 
-Descubre como sera tu vuelo antes de despegar.
-Convierte la incertidumbre en informacion: conoce las condiciones de tu vuelo y destino antes de embarcar.
+🔗 **App desplegada:** [legion-flight.streamlit.app](https://legion-flight.streamlit.app)
+
+Descubre cómo será tu vuelo antes de despegar. Consulta las condiciones meteorológicas en origen y destino, puntuación del trayecto y precios reales.
 
 ## Integrantes
 
-Neide Ochocho Penet;
-Guillermo Diaz Barrero;
-Mateo Molina Garibo;
-Rodrigo Gutman Nieto Peret;
+Neide Ochocho Penet · Guillermo Diaz Barrero · Mateo Molina Garibo · Rodrigo Gutman Nieto Peret
 
 ## Estructura
 
-- src: codigo fuente (descarga, limpieza, scoring de vuelos, integraciones con APIs)
-- web: aplicacion Streamlit (app.py)
-- data: ficheros crudos y trabajados (CSV y JSON)
-- notebooks: ficheros de prueba y analisis exploratorio
-
-
-## Instrucciones
-
-- Virtual env: python -m venv .venv
-- Activarlo: .venv\Scripts\activate / source .venv/bin/activate
-- Librerias: pip install -r requirements.txt
-- Arrancar la app: streamlit run web/app.py
-
-
-## Arquitectura Docker
-
-La aplicacion se divide en dos contenedores que se ejecutan en orden:
-
 ```
-APIs externas --> [data-pipeline] --> volumen /data (CSV/JSON) --> [streamlit-app] --> Usuario
+src/        pipeline de datos (descarga, limpieza, scoring, APIs)
+web/        app Streamlit (app.py + pages/)
+data/       datos generados en ejecución (ignorados por git)
 ```
 
-**Contenedor 1 — data-pipeline**
+## Variables de entorno
 
-Ejecuta download.py y clean.py. Descarga los datos de las APIs de vuelos y tiempo, los limpia y los guarda en el volumen compartido. Cuando termina su trabajo, se apaga.
+Crea un archivo `.env` en la raíz del proyecto con:
 
-**Contenedor 2 — streamlit-app**
+```
+SERPAPI_KEY=tu_clave_aqui
+```
 
-Arranca despues del primero (depends_on: data-pipeline). Lee los datos ya procesados del volumen y sirve la aplicacion web en el puerto 8505.
+La clave se obtiene en [serpapi.com](https://serpapi.com).
 
-**Volumen compartido — data-volume**
+---
 
-Es una carpeta gestionada por Docker que montan los dos contenedores. Permite que el pipeline escriba los ficheros y que la app los lea sin que ninguno dependa directamente del otro.
+## Ejecución manual
 
-Para arrancar todo junto:
+### 1. Entorno virtual e instalación
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # macOS / Linux
+.venv\Scripts\activate           # Windows
+
+pip install -r requirements.txt
+```
+
+### 2. Descargar datos meteorológicos
+
+```bash
+python src/download.py
+```
+
+Descarga datos históricos (últimos 7 días) y previsión (30 días) para todos los aeropuertos desde Open-Meteo. Guarda el resultado en `data/raw/weather_data.json`.
+
+### 3. Limpiar y convertir a CSV
+
+```bash
+python src/clean.py
+```
+
+Convierte `data/raw/weather_data.json` a `data/clean/weather_data.csv`.
+
+### 4. Arrancar la app
+
+```bash
+streamlit run web/app.py
+```
+---
+
+## Ejecución con Docker
+
+La aplicación se divide en dos contenedores que se ejecutan en orden:
+
+```
+APIs externas → [data-pipeline] → volumen /data → [streamlit-app] → Usuario
+```
+
+- **data-pipeline**: ejecuta `download.py` y `clean.py`, escribe los datos en el volumen compartido y se apaga.
+- **streamlit-app**: arranca después del pipeline, lee los datos del volumen y sirve la app en el puerto 8501.
 
 ```bash
 docker compose up --build
-
 ```
 
+Para forzar una actualización de datos sin reconstruir las imágenes:
+
+```bash
+docker compose up
+```

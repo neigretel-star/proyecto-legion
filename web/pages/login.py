@@ -36,7 +36,7 @@ def login(username, password):
         return False, "Contraseña incorrecta."
     return True, username
 
-# CSS mínimo: fondo oscuro, ocultar chrome, botones
+# CSS: fondo oscuro, ocultar chrome, botones
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
@@ -46,6 +46,9 @@ st.markdown("""
         background-color: #06080f !important;
         color: #e8eaf0;
     }
+    h1, h2, h3 { color: #ffffff !important; }
+    [data-testid="stMarkdownContainer"] p { color: #e8eaf0; }
+    p { color: #e8eaf0; }
     #MainMenu {visibility: hidden;}
     footer     {visibility: hidden;}
     header     {visibility: hidden;}
@@ -98,6 +101,7 @@ with tab_login:
                 st.session_state["usuario"] = resultado
                 usuarios_data = cargar_usuarios()
                 st.session_state["favoritos"] = usuarios_data.get(resultado, {}).get("favoritos", [])
+                st.session_state["rutas_favoritas"] = usuarios_data.get(resultado, {}).get("rutas_favoritas", [])
                 st.success(f"Bienvenido, {resultado}!")
                 st.balloons()
                 st.switch_page("app.py")

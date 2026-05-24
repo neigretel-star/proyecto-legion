@@ -7,7 +7,9 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - data-volume:/app/data  # guarda los CSV/JSON en el volumen compartido
+      - data-volume:/app/data
+    env_file:
+      - .env
 
   # Contenedor 2: la app de Streamlit
   streamlit-app:
@@ -15,11 +17,13 @@ services:
       context: .
       dockerfile: Dockerfile.app
     volumes:
-      - data-volume:/app/data  # lee los CSV/JSON que dejo el pipeline
+      - data-volume:/app/data
     ports:
-      - "8505:8505"
+      - "8501:8501"
+    env_file:
+      - .env
     depends_on:
-      - data-pipeline  # no arranca hasta que el pipeline haya terminado
+      - data-pipeline
 
 # Volumen compartido donde se pasan los datos entre contenedores
 volumes:

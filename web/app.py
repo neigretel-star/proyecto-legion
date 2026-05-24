@@ -2,6 +2,11 @@ import streamlit as st
 import sys
 import os
 import json
+import random
+import datetime as _dt
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # --- RUTAS ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,64 +44,28 @@ def guardar_usuarios(usuarios):
 # --- SESSION STATE ---
 if "favoritos" not in st.session_state:
     st.session_state["favoritos"] = []
-
-# --- PRECIO ESTIMADO ---
-def estimar_precio(iata_orig, iata_dest, hora_int, linea, vuelo_code):
-    SPAIN  = {"MAD","BCN","PMI","AGP","ALC","LPA","TFS","VLC","SVQ","BIO","IBZ","ACE","FUE","MAH","SCQ"}
-    EUROPE = {"LHR","LGW","MAN","LIS","OPO","FAO","FCO","MXP","NAP","CDG","ORY","MRS","FRA","MUC","BER"}
-    AFRICA = {"CMN","RAK","TNG"}
-
-    def region(iata):
-        if iata in SPAIN:  return "spain"
-        if iata in EUROPE: return "europe"
-        if iata in AFRICA: return "africa"
-        return "other"
-
-    r_o, r_d = region(iata_orig), region(iata_dest)
-
-    if r_o == "spain" and r_d == "spain":
-        base = 65.0
-    elif "africa" in (r_o, r_d):
-        base = 140.0
-    else:
-        base = 110.0
-
-    # Hora pico
-    if 7 <= hora_int <= 9 or 17 <= hora_int <= 20:
-        base *= 1.25
-    elif hora_int <= 5 or hora_int >= 23:
-        base *= 0.85
-
-    # Aerolínea
-    LOW_COST = ["Ryanair", "easyJet", "Vueling", "Volotea", "Wizz Air", "Transavia"]
-    PREMIUM  = ["British Airways", "Lufthansa", "Air France"]
-    if any(lc in linea for lc in LOW_COST):
-        base *= 0.75
-    elif any(p in linea for p in PREMIUM):
-        base *= 1.20
-
-    # Pequeña varianza determinista basada en dígitos del código de vuelo
-    try:
-        digits = ''.join(filter(str.isdigit, vuelo_code))
-        if digits:
-            base += (int(digits[-1]) - 4.5) * 3
-    except Exception:
-        pass
-
-    return max(29, round(base))
+if "rutas_favoritas" not in st.session_state:
+    st.session_state["rutas_favoritas"] = []
 
 
-@st.cache_data(ttl=3600)
+
 def load_data():
     return load_weather_csv()
 
 df_weather = load_data()
 available_dates = get_available_dates(df_weather)
 
-# --- HERO WEATHER (London Gatwick, primera fecha disponible) ---
+# Ciudad aleatoria por sesión para el hero
+if "hero_city" not in st.session_state:
+    st.session_state["hero_city"] = random.choice(list(CIUDADES_IATA.keys()))
+
+hero_city = st.session_state["hero_city"]
+hero_iata = CIUDADES_IATA[hero_city]
+
+# --- HERO WEATHER (ciudad aleatoria, primera fecha disponible) ---
 hero_weather = None
 for try_hour in [12, 9, 15, 6, 0]:
-    hero_weather = get_weather_at(df_weather, "London Gatwick", available_dates[0], try_hour)
+    hero_weather = get_weather_at(df_weather, hero_city, available_dates[0], try_hour)
     if hero_weather:
         break
 
@@ -117,7 +86,15 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
     * { font-family: 'Inter', sans-serif; }
-    h1, h2, h3 { font-family: 'Syne', sans-serif; }
+    h1, h2, h3 { font-family: 'Syne', sans-serif; color: #ffffff !important; }
+
+    [data-testid="stMarkdownContainer"] p { color: #e8eaf0; }
+    [data-testid="stText"] { color: #e8eaf0; }
+    [data-testid="stMetricValue"] { color: #ffffff !important; }
+    [data-testid="stMetricLabel"] { color: #9ca3af !important; }
+    [data-testid="stMetricDelta"] { color: #9ca3af !important; }
+    label { color: #9ca3af !important; }
+    p { color: #e8eaf0; }
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -187,11 +164,11 @@ with col_img:
     st.markdown('<div style="max-height:220px;overflow:hidden;border-radius:8px;">', unsafe_allow_html=True)
     st.image(img_path, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    st.caption("✈ Análisis meteorológico de vuelos · London Gatwick · Live")
+    st.caption(f"✈ Análisis meteorológico de vuelos · {hero_city} · Live")
 
 with col_widget:
     with st.container(border=True):
-        st.metric("Aeropuerto", "LGW")
+        st.metric("Aeropuerto", hero_iata)
         st.metric("Temperatura", h_temp)
         st.metric("Viento", h_wind_speed)
         st.metric("Dirección", h_wind_dir)
@@ -204,22 +181,15 @@ st.markdown('<div id="buscar-vuelo"></div>', unsafe_allow_html=True)
 
 col1, col2, col3, col4 = st.columns(4)
 
+ciudades = list(CIUDADES_IATA.keys())
+
 with col1:
-    origen = st.selectbox(
-        "Ciudad / Aeropuerto salida",
-        options=list(CIUDADES_IATA.keys()),
-        index=0,
-    )
+    origen = st.selectbox("Ciudad / Aeropuerto salida", options=ciudades, index=0)
 
 with col2:
-    destino = st.selectbox(
-        "Ciudad / Aeropuerto llegada",
-        options=list(CIUDADES_IATA.keys()),
-        index=1,
-    )
+    destino = st.selectbox("Ciudad / Aeropuerto llegada", options=ciudades, index=1)
 
 with col3:
-    import datetime as _dt
     _today = _dt.date.today()
     _one_month = _today + _dt.timedelta(days=30)
     _min_date = max(available_dates[0], _today)
@@ -235,6 +205,40 @@ with col3:
 
 with col4:
     buscar = st.button("Buscar vuelos")
+    ya_ruta_guardada = any(
+        r["origen"] == origen and r["destino"] == destino
+        for r in st.session_state["rutas_favoritas"]
+    )
+    label_ruta = "★ Ruta guardada" if ya_ruta_guardada else "☆ Guardar ruta"
+    if st.button(label_ruta, key="guardar_ruta"):
+        if not st.session_state.get("usuario"):
+            st.toast("Inicia sesión para guardar rutas", icon="🔒")
+        elif origen == destino:
+            st.toast("Origen y destino no pueden ser iguales", icon="⚠️")
+        elif ya_ruta_guardada:
+            st.session_state["rutas_favoritas"] = [
+                r for r in st.session_state["rutas_favoritas"]
+                if not (r["origen"] == origen and r["destino"] == destino)
+            ]
+            usuarios = cargar_usuarios()
+            u = st.session_state["usuario"]
+            if u in usuarios:
+                usuarios[u]["rutas_favoritas"] = st.session_state["rutas_favoritas"]
+            guardar_usuarios(usuarios)
+            st.toast("Ruta eliminada de favoritos", icon="🗑️")
+            st.rerun()
+        else:
+            st.session_state["rutas_favoritas"].append({
+                "origen": origen, "destino": destino,
+                "iata_orig": CIUDADES_IATA[origen], "iata_dest": CIUDADES_IATA[destino],
+            })
+            usuarios = cargar_usuarios()
+            u = st.session_state["usuario"]
+            if u in usuarios:
+                usuarios[u]["rutas_favoritas"] = st.session_state["rutas_favoritas"]
+            guardar_usuarios(usuarios)
+            st.toast("Ruta guardada en favoritos", icon="⭐")
+            st.rerun()
 
 # --- RESULTADOS ---
 # Los resultados se almacenan en session_state para que persistan
@@ -244,7 +248,7 @@ if buscar:
         st.error("El aeropuerto de origen y destino no pueden ser el mismo.")
         st.session_state.pop("resultados", None)
     else:
-        vuelos_reales = buscar_programacion_comercial(origen, destino)
+        vuelos_reales = buscar_programacion_comercial(origen, destino, str(fecha))
         if not vuelos_reales:
             st.warning("No se encontraron vuelos comerciales programados.")
             st.session_state.pop("resultados", None)
@@ -271,10 +275,7 @@ if buscar:
                     nota_final = result.get('rating', 0.0)
                     etiqueta   = result.get('label', 'Malo')
                     color_nota = result.get('color', '#dc3545')
-                    precio     = estimar_precio(
-                        CIUDADES_IATA[origen], CIUDADES_IATA[destino],
-                        vuelo["hora_int"], vuelo["linea"], vuelo["vuelo"]
-                    )
+                    precio = vuelo.get("precio")
                     enriquecidos.append({
                         "vuelo":       vuelo,
                         "datos_o":     datos_o,
@@ -310,9 +311,10 @@ for item in st.session_state.get("resultados", []):
             st.caption(vuelo['vuelo'])
         with c2:
             st.markdown(f"## {CIUDADES_IATA[origen_r]} → {CIUDADES_IATA[destino_r]}")
-            st.caption("Directo · Programado")
+            st.caption("Con escala · Programado" if vuelo.get("escala") else "Directo · Programado")
         with c3:
-            st.metric("Precio est.", f"~{precio} €")
+            precio_str = f"{precio} €" if precio else "—"
+            st.metric("Precio", precio_str)
             st.caption(f"{datos_o['temperature']}°C / {datos_d['temperature']}°C · {datos_o['wind_speed']} km/h")
         with c4:
             st.metric(etiqueta, f"{nota_final:.1f} / 10")
@@ -405,8 +407,8 @@ elif not st.session_state["favoritos"]:
     st.caption("Aún no tienes vuelos guardados.")
 else:
     for fav in st.session_state["favoritos"]:
-        precio_fav = fav.get("precio", "—")
-        precio_fav_str = f"~{precio_fav} €" if isinstance(precio_fav, int) else "—"
+        precio_fav = fav.get("precio")
+        precio_fav_str = f"{precio_fav} €" if precio_fav else "—"
 
         with st.container(border=True):
             c1, c2, c3, c4 = st.columns([1, 2, 1, 1])
@@ -418,7 +420,7 @@ else:
                 st.markdown(f"## {fav['iata_orig']} → {fav['iata_dest']}")
                 st.caption(f"{fav['origen']} → {fav['destino']}")
             with c3:
-                st.metric("Precio est.", precio_fav_str)
+                st.metric("Precio", precio_fav_str)
                 st.caption(f"{fav['temp_orig']}°C / {fav['temp_dest']}°C · {fav['viento']} km/h")
             with c4:
                 st.metric(fav['etiqueta'], f"{fav['nota']:.1f} / 10")
@@ -463,6 +465,99 @@ else:
                     usuarios[username]["favoritos"] = st.session_state["favoritos"]
                 guardar_usuarios(usuarios)
                 st.rerun()
+
+# --- RUTAS FAVORITAS ---
+st.divider()
+st.header("Rutas favoritas")
+
+if not st.session_state.get("usuario"):
+    st.info("Inicia sesión para ver tus rutas guardadas")
+elif not st.session_state["rutas_favoritas"]:
+    st.caption("Aún no tienes rutas guardadas. Guarda una ruta desde el buscador.")
+else:
+    cols = st.columns(3)
+    for i, ruta in enumerate(st.session_state["rutas_favoritas"]):
+        with cols[i % 3]:
+            with st.container(border=True):
+                st.markdown(f"### {ruta['iata_orig']} → {ruta['iata_dest']}")
+                st.caption(f"{ruta['origen']} → {ruta['destino']}")
+                bc1, bc2 = st.columns(2)
+                if bc1.button("Buscar vuelos", key=f"buscar_ruta_{i}"):
+                    st.session_state["_ruta_activa"] = i
+                if bc2.button("Eliminar", key=f"del_ruta_{i}"):
+                    st.session_state["rutas_favoritas"].pop(i)
+                    st.session_state.pop("_ruta_activa", None)
+                    usuarios = cargar_usuarios()
+                    u = st.session_state["usuario"]
+                    if u in usuarios:
+                        usuarios[u]["rutas_favoritas"] = st.session_state["rutas_favoritas"]
+                    guardar_usuarios(usuarios)
+                    st.rerun()
+
+    # Buscador inline para la ruta activa
+    idx_activo = st.session_state.get("_ruta_activa")
+    if idx_activo is not None and idx_activo < len(st.session_state["rutas_favoritas"]):
+        ruta_a = st.session_state["rutas_favoritas"][idx_activo]
+        st.divider()
+        st.subheader(f"Vuelos: {ruta_a['iata_orig']} → {ruta_a['iata_dest']}")
+
+        _today2   = _dt.date.today()
+        _min2     = max(available_dates[0], _today2)
+        _max2     = min(available_dates[-1], _today2 + _dt.timedelta(days=30))
+        _default2 = _min2 if _min2 in available_dates else available_dates[0]
+        fecha_ruta = st.date_input("Fecha", value=_default2, min_value=_min2, max_value=_max2, key="fecha_ruta_fav")
+
+        vuelos_ruta = buscar_programacion_comercial(ruta_a["origen"], ruta_a["destino"], str(fecha_ruta))
+
+        if not vuelos_ruta:
+            st.warning("No se encontraron vuelos para esta ruta y fecha.")
+        else:
+            for vuelo in vuelos_ruta:
+                w_orig = get_weather_at(df_weather, ruta_a["origen"], fecha_ruta, vuelo["hora_int"])
+                w_dest = get_weather_at(df_weather, ruta_a["destino"], fecha_ruta, (vuelo["hora_int"] + 1) % 24)
+                if not w_orig or not w_dest:
+                    continue
+                datos_o = {"temperature": w_orig.get("temperature", 20), "wind_speed": w_orig.get("wind_speed", 0),
+                           "precipitation": w_orig.get("precipitation", 0), "wind_direction": w_orig.get("wind_direction", 0)}
+                datos_d = {"temperature": w_dest.get("temperature", 20), "wind_speed": w_dest.get("wind_speed", 0),
+                           "precipitation": w_dest.get("precipitation", 0), "wind_direction": w_dest.get("wind_direction", 0)}
+                result = score_flight(datos_o, datos_d)
+                nota_final = result.get("rating", 0.0)
+                etiqueta   = result.get("label", "Malo")
+                color_nota = result.get("color", "#dc3545")
+                precio_r   = vuelo.get("precio")
+
+                with st.container(border=True):
+                    c1, c2, c3, c4 = st.columns([1, 2, 1, 1])
+                    with c1:
+                        st.markdown(f"### {vuelo['hora_salida']}")
+                        st.caption(vuelo["linea"])
+                        st.caption(vuelo["vuelo"])
+                    with c2:
+                        st.markdown(f"## {ruta_a['iata_orig']} → {ruta_a['iata_dest']}")
+                        st.caption("Con escala · Programado" if vuelo.get("escala") else "Directo · Programado")
+                    with c3:
+                        st.metric("Precio", f"{precio_r} €" if precio_r else "—")
+                        st.caption(f"{datos_o['temperature']}°C / {datos_d['temperature']}°C · {datos_o['wind_speed']} km/h")
+                    with c4:
+                        st.metric(etiqueta, f"{nota_final:.1f} / 10")
+
+                if st.button("Ver detalle", key=f"det_rutafav_{vuelo['vuelo']}_{vuelo['hora_salida']}"):
+                    st.session_state["vuelo_seleccionado"] = {
+                        "linea": vuelo["linea"], "vuelo": vuelo["vuelo"],
+                        "hora_salida": vuelo["hora_salida"], "hora_int": vuelo["hora_int"],
+                        "estado": vuelo.get("estado", "scheduled"),
+                        "origen": ruta_a["origen"], "destino": ruta_a["destino"],
+                        "iata_orig": ruta_a["iata_orig"], "iata_dest": ruta_a["iata_dest"],
+                        "fecha": str(fecha_ruta),
+                        "temp_orig": datos_o["temperature"], "viento_orig": datos_o["wind_speed"],
+                        "precip_orig": datos_o["precipitation"], "dir_orig": datos_o["wind_direction"],
+                        "temp_dest": datos_d["temperature"], "viento_dest": datos_d["wind_speed"],
+                        "precip_dest": datos_d["precipitation"], "dir_dest": datos_d["wind_direction"],
+                        "nota": nota_final, "etiqueta": etiqueta, "color": color_nota,
+                        "precio": precio_r,
+                    }
+                    st.switch_page("pages/detalle_vuelo.py")
 
 # --- CÓMO FUNCIONA ---
 st.markdown('<div id="como-funciona"></div>', unsafe_allow_html=True)

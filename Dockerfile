@@ -2,7 +2,7 @@
 # Contenedor 1: descarga y limpia los datos
 
 # Usamos la imagen oficial de Python 3.12 (slim es la version mas ligera)
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # Esto evita que Python cree archivos .pyc y que los logs salgan en tiempo real
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -25,4 +25,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 
 # Descarga y limpia los datos, los deja en /app/data para el otro contenedor
-CMD ["python", "src/download.py"]
+CMD ["sh", "-c", "python src/download.py && python src/clean.py"]

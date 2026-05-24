@@ -18,12 +18,18 @@ import datetime
 
 st.set_page_config(page_title="Detalle de vuelo · Legion Flight", layout="wide")
 
-# CSS mínimo: ocultar chrome de Streamlit y barra de navegación fija
+# CSS: ocultar chrome de Streamlit y barra de navegación fija
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
     * { font-family: 'Inter', sans-serif; }
-    h1, h2, h3 { font-family: 'Syne', sans-serif; }
+    h1, h2, h3 { font-family: 'Syne', sans-serif; color: #ffffff !important; }
+
+    [data-testid="stMarkdownContainer"] p { color: #e8eaf0; }
+    [data-testid="stMetricValue"] { color: #ffffff !important; }
+    [data-testid="stMetricLabel"] { color: #9ca3af !important; }
+    label { color: #9ca3af !important; }
+    p { color: #e8eaf0; }
 
     #MainMenu {visibility: hidden;}
     footer     {visibility: hidden;}
@@ -98,7 +104,7 @@ def estado_color(estado):
     return entry[0] if entry else "background:#374151;color:#f3f4f6;"
 
 # --- VARIABLES DERIVADAS ---
-precio_str = f"~{v['precio']} €" if isinstance(v.get("precio"), int) else "—"
+precio_str = f"{v['precio']} €" if v.get("precio") else "—"
 compass_o  = degrees_to_compass(v["dir_orig"])
 compass_d  = degrees_to_compass(v["dir_dest"])
 pl_o       = precip_label(v["precip_orig"])
@@ -129,8 +135,7 @@ with st.container(border=True):
             unsafe_allow_html=True
         )
     with c5:
-        st.metric("Precio estimado", precio_str)
-        st.caption("estimación sin garantía")
+        st.metric("Precio", precio_str)
 
 # --- SECCIÓN 2: RATING + CLIMA ---
 col_rating, col_orig, col_dest = st.columns([1, 1, 1])
@@ -264,7 +269,7 @@ elif nota >= 5.5:
 else:
     st.error("**Condiciones adversas** — Se detectan condiciones desfavorables en alguno de los aeropuertos. Consulta el estado actualizado y contacta con la aerolínea si tienes dudas.")
 
-st.caption("Score final: peor valor entre origen y destino (criterio conservador). Factores: viento (45%), precipitación (40%), temperatura (15%). El precio es una estimación basada en ruta, hora y aerolínea.")
+st.caption("Score final: peor valor entre origen y destino. Factores: viento (45%), precipitación (40%), temperatura (15%).")
 
 st.write("")
 if st.button("← Volver a resultados", key="volver_bottom"):
